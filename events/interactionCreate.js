@@ -19,13 +19,117 @@ const ingameHelp = require("../buttons/ingameHelp");
 const teamMeeting = require("../buttons/teamMeeting");
 const meetingJoin = require("../buttons/meetingJoin");
 
+const createTraining = require("../buttons/createTraining");
+const trainingList = require("../buttons/trainingList");
+const trainingJoin = require("../buttons/trainingJoin");
+
 module.exports = async (interaction) => {
 
     try {
 
-        // TEAM MEETING MODAL
+        // MODALS
         if (interaction.isModalSubmit()) {
 
+            // TRAINING MODAL
+            if (interaction.customId === "training_modal") {
+
+    const title =
+        interaction.fields.getTextInputValue("training_title");
+
+    const date =
+        interaction.fields.getTextInputValue("training_date");
+
+    const from =
+        interaction.fields.getTextInputValue("training_from");
+
+    const to =
+        interaction.fields.getTextInputValue("training_to");
+
+    const max =
+        interaction.fields.getTextInputValue("training_max");
+
+    const channel =
+        interaction.client.channels.cache.get(
+            config.ausbildungChannelId
+        );
+
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId("training_join")
+                .setLabel("✅ Anmelden")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    const embed = new EmbedBuilder()
+        .setTitle("👨‍💼 ADMIN-AUSBILDUNG")
+        .setColor("Orange")
+        .setThumbnail(interaction.guild.iconURL())
+        .addFields(
+            {
+                name: "📚 Titel",
+                value: title,
+                inline: false
+            },
+            {
+                name: "📅 Datum",
+                value: date,
+                inline: true
+            },
+            {
+                name: "🕒 Zeit",
+                value: `${from} - ${to}`,
+                inline: true
+            },
+            {
+                name: "👤 Ausbilder",
+                value: `${interaction.user}`,
+                inline: false
+            },
+            {
+                name: "👥 Plätze",
+                value: `0 / ${max}`,
+                inline: false
+            },
+            {
+                name: "📋 Teilnehmer",
+                value: "Keine Teilnehmer",
+                inline: false
+            }
+        )
+        .setFooter({
+            text: "HRP Admin Ausbildung"
+        })
+        .setTimestamp();
+
+    const msg = await channel.send({
+        embeds: [embed],
+        components: [row]
+    });
+
+    const trainings =
+        JSON.parse(
+            fs.readFileSync("./data/trainings.json")
+        );
+
+    trainings[msg.id] = {
+        title,
+        max: Number(max),
+        participants: []
+    };
+
+    fs.writeFileSync(
+        "./data/trainings.json",
+        JSON.stringify(trainings, null, 2)
+    );
+
+    return interaction.reply({
+        content: "✅ Ausbildung erstellt.",
+        ephemeral: true
+    });
+}
+
+            // TEAM MEETING MODAL
             if (interaction.customId === "team_meeting_modal") {
 
                 const title =
@@ -57,14 +161,14 @@ module.exports = async (interaction) => {
                     );
 
                 const embed = new EmbedBuilder()
-    .setTitle(`📢 TEAM MEETING | ${title}`)
-    .setColor("#0099ff")
-    .setThumbnail(interaction.guild.iconURL())
-    .setAuthor({
-        name: "HRP Hamburg RP",
-        iconURL: interaction.guild.iconURL()
-    })
-    .setDescription(
+                    .setTitle(`📢 TEAM MEETING | ${title}`)
+                    .setColor("#0099ff")
+                    .setThumbnail(interaction.guild.iconURL())
+                    .setAuthor({
+                        name: "HRP Hamburg RP",
+                        iconURL: interaction.guild.iconURL()
+                    })
+                    .setDescription(
 `━━━━━━━━━━━━━━━━━━━━━━
 
 📢 **Ein neues Team Meeting wurde angekündigt**
@@ -72,55 +176,51 @@ module.exports = async (interaction) => {
 Bitte melde dich über den Button unten an.
 
 ━━━━━━━━━━━━━━━━━━━━━━`
-    )
-    .addFields(
-        {
-            name: "📅 Datum",
-            value: `>>> ${date}`,
-            inline: true
-        },
-        {
-            name: "🕒 Uhrzeit",
-            value: `>>> ${time}`,
-            inline: true
-        },
-        {
-            name: "🎤 Ort",
-            value: `>>> ${place}`,
-            inline: true
-        },
-        {
-            name: "📝 Informationen",
-            value: `>>> ${info}`,
-            inline: false
-        },
-        {
-            name: "👥 Teilnehmer (0)",
-            value: ">>> Noch keine Teilnehmer",
-            inline: false
-        }
-
-    )
-    .setImage(
-        "https://cdn.discordapp.com/attachments/1519042587976007751/1519049105840803908/file_00000000d784720aa41c483a0b5e5279.png?ex=6a3c2439&is=6a3ad2b9&hm=77db128798f90e1698ff9cf6900e38d59742419722b687ffb9de58eab7df3449&"
-    )
-    .setFooter({
-        text: `HRP Leitung • ${interaction.guild.name}`
-    })
-    .setTimestamp();
+                    )
+                    .addFields(
+                        {
+                            name: "📅 Datum",
+                            value: `>>> ${date}`,
+                            inline: true
+                        },
+                        {
+                            name: "🕒 Uhrzeit",
+                            value: `>>> ${time}`,
+                            inline: true
+                        },
+                        {
+                            name: "🎤 Ort",
+                            value: `>>> ${place}`,
+                            inline: true
+                        },
+                        {
+                            name: "📝 Informationen",
+                            value: `>>> ${info}`,
+                            inline: false
+                        },
+                        {
+                            name: "👥 Teilnehmer (0)",
+                            value: ">>> Noch keine Teilnehmer",
+                            inline: false
+                        }
+                    )
+                    .setImage(
+                        "https://cdn.discordapp.com/attachments/1519042587976007751/1519049105840803908/file_00000000d784720aa41c483a0b5e5279.png"
+                    )
+                    .setFooter({
+                        text: `HRP Leitung • ${interaction.guild.name}`
+                    })
+                    .setTimestamp();
 
                 const msg = await channel.send({
-    content: `<@&${config.raidPingRoleId}>`,
-    embeds: [embed],
-    components: [button]
-});
+                    content: `<@&${config.raidPingRoleId}>`,
+                    embeds: [embed],
+                    components: [button]
+                });
 
-                const meetings =
-                    JSON.parse(
-                        fs.readFileSync(
-                            "./data/meetings.json"
-                        )
-                    );
+                const meetings = JSON.parse(
+                    fs.readFileSync("./data/meetings.json")
+                );
 
                 meetings[msg.id] = {
                     title,
@@ -141,6 +241,8 @@ Bitte melde dich über den Button unten an.
 
         // BUTTONS
         if (!interaction.isButton()) return;
+
+        console.log("Button:", interaction.customId);
 
         if (interaction.customId === "rp_start") {
             return rpStart(interaction);
@@ -174,7 +276,20 @@ Bitte melde dich über den Button unten an.
             return meetingJoin(interaction);
         }
 
+        if (interaction.customId === "training_create") {
+            return createTraining(interaction);
+        }
+
+        if (interaction.customId === "training_list") {
+            return trainingList(interaction);
+        }
+
+        if (interaction.customId === "training_join") {
+            return trainingJoin(interaction);
+        }
+
     } catch (err) {
         console.error(err);
     }
+
 };

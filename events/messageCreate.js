@@ -1,6 +1,7 @@
 const rpSetup = require("../commands/rpSetup");
 const codeSetup = require("../commands/codeSetup");
 const leitungPanel = require("../commands/leitungPanel");
+const ausbilderPanel = require("../commands/ausbilderPanel");
 
 module.exports = async (message) => {
 
@@ -22,8 +23,12 @@ module.exports = async (message) => {
             await leitungPanel(message);
         }
 
+        if (message.content === "!ausbilder_panel") {
+            console.log("Ausbilder Panel erkannt");
+            await ausbilderPanel(message);
+        }
+
     } catch (err) {
         console.error(err);
     }
-
 };

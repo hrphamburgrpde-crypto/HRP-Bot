@@ -12,6 +12,9 @@ module.exports = {
     leitungChannelId: process.env.LEITUNG_CHANNEL_ID,
     meetingLogChannelId: process.env.MEETING_LOG_CHANNEL_ID,
 
+    ausbildungChannelId: process.env.AUSBILDUNG_CHANNEL_ID,
+    ausbildungLogChannelId: process.env.AUSBILDUNG_LOG_CHANNEL_ID,
+
     startMessage: `
 🚔 Das RP wurde gestartet!
 
