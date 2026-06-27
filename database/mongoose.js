@@ -3,7 +3,6 @@ const config = require("../config");
 
 module.exports = async () => {
     try {
-console.log(config.mongoUri);
         await mongoose.connect(config.mongoUri);
 
         console.log("✅ MongoDB verbunden");
