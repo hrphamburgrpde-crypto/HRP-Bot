@@ -4,6 +4,8 @@ const {
 } = require("discord.js");
 
 const config = require("./config");
+const connectMongo = require("./database/mongoose");
+const autoClose = require("./utils/autoClose");
 
 const client = new Client({
     intents: [
@@ -21,7 +23,12 @@ client.on("interactionCreate", (interaction) => {
     require("./events/interactionCreate")(interaction);
 });
 
-client.once("ready", () => {
+
+client.once("ready", async () => {
+    await connectMongo();
+
+    autoClose(client);
+
     console.log(`${client.user.tag} ist online.`);
 });
 

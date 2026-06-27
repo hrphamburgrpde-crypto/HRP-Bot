@@ -2,6 +2,7 @@ require("dotenv").config();
 
 module.exports = {
     token: process.env.TOKEN,
+    mongoUri: process.env.MONGODB_URI,
 
     statusChannelId: process.env.RP_STATUS_CHANNEL_ID,
     pingRoleId: process.env.RP_PING_ROLE_ID,
@@ -14,6 +15,7 @@ module.exports = {
 
     ausbildungChannelId: process.env.AUSBILDUNG_CHANNEL_ID,
     ausbildungLogChannelId: process.env.AUSBILDUNG_LOG_CHANNEL_ID,
+
 
     startMessage: `
 🚔 Das RP wurde gestartet!

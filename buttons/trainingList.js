@@ -1,35 +1,42 @@
-const fs = require("fs");
 const { EmbedBuilder } = require("discord.js");
+const Training = require("../models/Training");
 
 module.exports = async (interaction) => {
 
-    const trainings = JSON.parse(
-        fs.readFileSync("./data/trainings.json")
-    );
+    const trainings = await Training.find().sort({
+        date: 1
+    });
 
-    if (Object.keys(trainings).length === 0) {
+    if (trainings.length === 0) {
         return interaction.reply({
-            content: "❌ Keine Ausbildungen vorhanden.",
+            content: "❌ Es sind aktuell keine Admin-Ausbildungen eingetragen.",
             ephemeral: true
         });
     }
 
-    let text = "";
-
-    for (const id in trainings) {
-
-        text +=
-            `📚 ${trainings[id].title}\n` +
-            `👥 ${trainings[id].participants.length}/${trainings[id].max}\n\n`;
-    }
-
     const embed = new EmbedBuilder()
-        .setTitle("📅 Anstehende Ausbildungen")
-        .setDescription(text)
-        .setColor("Blue");
+        .setColor("Orange")
+        .setTitle("📚 Anstehende Admin-Ausbildungen")
+        .setDescription(
+            "Hier findest du alle offenen Admin-Ausbildungen."
+        );
+
+    trainings.forEach(training => {
+
+        embed.addFields({
+            name: `📚 ${training.title}`,
+            value:
+`📅 **Datum:** ${training.date}
+🕒 **Zeit:** ${training.from} - ${training.to}
+👥 **Teilnehmer:** ${training.participants.length}/${training.max}`,
+            inline: false
+        });
+
+    });
 
     await interaction.reply({
         embeds: [embed],
         ephemeral: true
     });
+
 };

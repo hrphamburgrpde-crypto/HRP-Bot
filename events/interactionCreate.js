@@ -11,6 +11,8 @@ const {
 const rpStart = require("../buttons/rpStart");
 const rpStop = require("../buttons/rpStop");
 
+const Training = require("../models/Training");
+
 const raidSuspect = require("../buttons/raidSuspect");
 const raidActive = require("../buttons/raidActive");
 const raidEnd = require("../buttons/raidEnd");
@@ -18,6 +20,7 @@ const ingameHelp = require("../buttons/ingameHelp");
 
 const teamMeeting = require("../buttons/teamMeeting");
 const meetingJoin = require("../buttons/meetingJoin");
+const Meeting = require("../models/Meeting");
 
 const createTraining = require("../buttons/createTraining");
 const trainingList = require("../buttons/trainingList");
@@ -38,12 +41,35 @@ module.exports = async (interaction) => {
 
     const date =
         interaction.fields.getTextInputValue("training_date");
+const dateRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+
+if (!dateRegex.test(date)) {
+    return interaction.reply({
+        content: "❌ Bitte gib das Datum im Format **TT.MM.JJJJ** ein.\n\nBeispiel: 28.06.2026",
+        ephemeral: true
+    });
+}
 
     const from =
         interaction.fields.getTextInputValue("training_from");
 
     const to =
         interaction.fields.getTextInputValue("training_to");
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+if (!timeRegex.test(from)) {
+    return interaction.reply({
+        content: "❌ Die Startzeit muss im Format **HH:MM** sein.\n\nBeispiel: 18:00",
+        ephemeral: true
+    });
+}
+
+if (!timeRegex.test(to)) {
+    return interaction.reply({
+        content: "❌ Die Endzeit muss im Format **HH:MM** sein.\n\nBeispiel: 20:00",
+        ephemeral: true
+    });
+}
 
     const max =
         interaction.fields.getTextInputValue("training_max");
@@ -107,21 +133,29 @@ module.exports = async (interaction) => {
         components: [row]
     });
 
-    const trainings =
-        JSON.parse(
-            fs.readFileSync("./data/trainings.json")
-        );
+    try {
 
-    trainings[msg.id] = {
+    const training = await Training.create({
+	messageChannelId: channel.id,
+        messageId: msg.id,
         title,
+        date,
+        from,
+        to,
         max: Number(max),
+        creatorId: interaction.user.id,
         participants: []
-    };
+    });
 
-    fs.writeFileSync(
-        "./data/trainings.json",
-        JSON.stringify(trainings, null, 2)
-    );
+    console.log("GESPEICHERT:");
+    console.log(training);
+
+} catch (err) {
+
+    console.error("MONGO FEHLER:");
+    console.error(err);
+
+}
 
     return interaction.reply({
         content: "✅ Ausbildung erstellt.",
@@ -137,9 +171,25 @@ module.exports = async (interaction) => {
 
                 const date =
                     interaction.fields.getTextInputValue("meeting_date");
+const dateRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+
+if (!dateRegex.test(date)) {
+    return interaction.reply({
+        content: "❌ Bitte gib das Datum im Format **TT.MM.JJJJ** ein.\n\nBeispiel: 28.06.2026",
+        ephemeral: true
+    });
+}
 
                 const time =
                     interaction.fields.getTextInputValue("meeting_time");
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+if (!timeRegex.test(time)) {
+    return interaction.reply({
+        content: "❌ Bitte gib die Uhrzeit im Format **HH:MM** ein.\n\nBeispiel: 19:30",
+        ephemeral: true
+    });
+}
 
                 const place =
                     interaction.fields.getTextInputValue("meeting_place");
@@ -218,19 +268,24 @@ Bitte melde dich über den Button unten an.
                     components: [button]
                 });
 
-                const meetings = JSON.parse(
-                    fs.readFileSync("./data/meetings.json")
-                );
+                await Meeting.create({
 
-                meetings[msg.id] = {
-                    title,
-                    participants: []
-                };
+    messageId: msg.id,
+    messageChannelId: channel.id,
 
-                fs.writeFileSync(
-                    "./data/meetings.json",
-                    JSON.stringify(meetings, null, 2)
-                );
+    title,
+    date,
+    time,
+    place,
+    info,
+
+    creatorId: interaction.user.id,
+
+    participants: [],
+
+    status: "open"
+
+});
 
                 return interaction.reply({
                     content: "✅ Meeting erstellt.",

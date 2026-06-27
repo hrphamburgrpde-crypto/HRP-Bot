@@ -1,49 +1,48 @@
-const fs = require("fs");
-const { EmbedBuilder } = require("discord.js");
+const {
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require("discord.js");
+
+const Training = require("../models/Training");
+const config = require("../config");
 
 module.exports = async (interaction) => {
 
-    const trainings = JSON.parse(
-        fs.readFileSync("./data/trainings.json")
-    );
+    const training = await Training.findOne({
+        messageId: interaction.message.id
+    });
 
-    const trainingId = interaction.message.id;
-
-    if (!trainings[trainingId]) {
+    if (!training) {
         return interaction.reply({
-            content: "❌ Ausbildung nicht gefunden.",
+            content: "❌ Diese Ausbildung wurde nicht gefunden.",
             ephemeral: true
         });
     }
 
     const userId = interaction.user.id;
 
-    if (trainings[trainingId].participants.includes(userId)) {
+    if (training.participants.includes(userId)) {
         return interaction.reply({
             content: "❌ Du bist bereits angemeldet.",
             ephemeral: true
         });
     }
 
-    if (
-        trainings[trainingId].participants.length >=
-        trainings[trainingId].max
-    ) {
+    if (training.participants.length >= training.max) {
         return interaction.reply({
-            content: "❌ Ausbildung ist bereits voll.",
+            content: "❌ Diese Ausbildung ist bereits voll.",
             ephemeral: true
         });
     }
 
-    trainings[trainingId].participants.push(userId);
+    training.participants.push(userId);
 
-    fs.writeFileSync(
-        "./data/trainings.json",
-        JSON.stringify(trainings, null, 2)
-    );
+    await training.save();
 
     const participantList =
-        trainings[trainingId].participants
+        training.participants
             .map(id => `• <@${id}>`)
             .join("\n");
 
@@ -52,72 +51,74 @@ module.exports = async (interaction) => {
     );
 
     embed.data.fields[4].value =
-        `${trainings[trainingId].participants.length} / ${trainings[trainingId].max}`;
+        `${training.participants.length} / ${training.max}`;
 
     embed.data.fields[5].value =
         participantList;
 
-    const current =
-    trainings[trainingId].participants.length;
+    let row;
 
-const max =
-    trainings[trainingId].max;
+    if (training.participants.length >= training.max) {
 
-if (current >= max) {
+        row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId("training_full")
+                    .setLabel("❌ Ausbildung voll")
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(true)
+            );
 
-    const row =
-        interaction.message.components[0];
+    } else {
 
-    row.components[0].data.disabled = true;
-    row.components[0].data.label =
-        "❌ Ausbildung voll";
+        row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId("training_join")
+                    .setLabel("✅ Anmelden")
+                    .setStyle(ButtonStyle.Success)
+            );
+
+    }
 
     await interaction.message.edit({
         embeds: [embed],
         components: [row]
     });
 
-} else {
+    const logChannel =
+        interaction.client.channels.cache.get(
+            config.ausbildungLogChannelId
+        );
 
-    await interaction.message.edit({
-        embeds: [embed]
-    });
+    if (logChannel) {
 
-}
-const config = require("../config");
+        const logEmbed = new EmbedBuilder()
+            .setColor("Green")
+            .setTitle("📚 Neue Ausbildungsanmeldung")
+            .addFields(
+                {
+                    name: "👤 Benutzer",
+                    value: `${interaction.user}`,
+                    inline: true
+                },
+                {
+                    name: "📖 Ausbildung",
+                    value: training.title,
+                    inline: true
+                }
+            )
+            .setTimestamp();
 
-const logChannel =
-    interaction.client.channels.cache.get(
-        config.ausbildungLogChannelId
-    );
+        await logChannel.send({
+            embeds: [logEmbed]
+        });
 
-if (logChannel) {
+    }
 
-    const { EmbedBuilder } = require("discord.js");
-
-    const logEmbed = new EmbedBuilder()
-        .setTitle("📚 Neue Ausbildungsanmeldung")
-        .setColor("Green")
-        .addFields(
-            {
-                name: "👤 Benutzer",
-                value: `${interaction.user}`,
-                inline: true
-            },
-            {
-                name: "📖 Ausbildung",
-                value: trainings[trainingId].title,
-                inline: true
-            }
-        )
-        .setTimestamp();
-
-    await logChannel.send({
-        embeds: [logEmbed]
-    });
-}
-    await interaction.reply({
-        content: "✅ Du wurdest angemeldet.",
+    return interaction.reply({
+        content: "✅ Du wurdest erfolgreich angemeldet.",
         ephemeral: true
     });
+
 };

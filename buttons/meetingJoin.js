@@ -1,51 +1,45 @@
-const fs = require("fs");
-const { EmbedBuilder } = require("discord.js");
+const {
+    EmbedBuilder
+} = require("discord.js");
+
 const config = require("../config");
+const Meeting = require("../models/Meeting");
 
 module.exports = async (interaction) => {
 
-    const meetings = JSON.parse(
-        fs.readFileSync("./data/meetings.json")
-    );
+    const meeting = await Meeting.findOne({
+        messageId: interaction.message.id
+    });
 
-    const meetingId = interaction.message.id;
-
-    if (!meetings[meetingId]) {
+    if (!meeting) {
         return interaction.reply({
             content: "❌ Meeting nicht gefunden.",
             ephemeral: true
         });
     }
 
-    const userId = interaction.user.id;
-
-    if (meetings[meetingId].participants.includes(userId)) {
+    if (meeting.participants.includes(interaction.user.id)) {
         return interaction.reply({
             content: "❌ Du bist bereits angemeldet.",
             ephemeral: true
         });
     }
 
-    meetings[meetingId].participants.push(userId);
+    meeting.participants.push(interaction.user.id);
 
-    fs.writeFileSync(
-        "./data/meetings.json",
-        JSON.stringify(meetings, null, 2)
-    );
-
-    const participantList = meetings[meetingId].participants
-        .map(id => `• <@${id}>`)
-        .join("\n");
+    await meeting.save();
 
     const embed = EmbedBuilder.from(
         interaction.message.embeds[0]
     );
 
     embed.data.fields[4].name =
-    `👥 Teilnehmer (${meetings[meetingId].participants.length})`;
+        `👥 Teilnehmer (${meeting.participants.length})`;
 
-embed.data.fields[4].value =
-    participantList || "Keine Teilnehmer";
+    embed.data.fields[4].value =
+        meeting.participants
+            .map(id => `• <@${id}>`)
+            .join("\n");
 
     await interaction.message.edit({
         embeds: [embed]
@@ -57,30 +51,47 @@ embed.data.fields[4].value =
         );
 
     if (logChannel) {
+
         await logChannel.send({
+
             embeds: [
+
                 new EmbedBuilder()
-                    .setTitle("📋 Neue Meeting-Anmeldung")
+
                     .setColor("Green")
+
+                    .setTitle("📋 Neue Meeting-Anmeldung")
+
                     .addFields(
+
                         {
                             name: "👤 Benutzer",
                             value: `${interaction.user}`,
                             inline: true
                         },
+
                         {
                             name: "📢 Meeting",
-                            value: meetings[meetingId].title,
+                            value: meeting.title,
                             inline: true
                         }
+
                     )
+
                     .setTimestamp()
+
             ]
+
         });
+
     }
 
-    await interaction.reply({
+    return interaction.reply({
+
         content: "✅ Du wurdest erfolgreich angemeldet.",
+
         ephemeral: true
+
     });
+
 };
